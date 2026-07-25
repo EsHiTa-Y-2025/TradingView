@@ -36,13 +36,15 @@ app.get('/api/search', async (req, res) => {
     if (!r.ok) throw new Error(`Yahoo search HTTP ${r.status}`);
     const data = await r.json();
 
+    const ALLOWED_TYPES = new Set(['EQUITY', 'ETF', 'INDEX']);
     const quotes = (data.quotes || [])
-      .filter(x => x.symbol && (x.quoteType === 'EQUITY' || x.quoteType === 'ETF'))
+      .filter(x => x.symbol && ALLOWED_TYPES.has(x.quoteType))
       .slice(0, 7)
       .map(x => ({
         symbol: x.symbol,
         name: x.shortname || x.longname || x.symbol,
         exchange: x.exchDisp || x.exchange || '',
+        type: x.quoteType,
       }));
 
     setCached(cacheKey, quotes);
