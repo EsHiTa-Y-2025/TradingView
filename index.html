@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reduction Tape — High/Low Digital Root Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mint-1:#f2fff8;
+    --mint-2:#cff4e2;
+    --mint-3:#b9e6d2;
+    --blue-1:#e6f4ff;
+    --pink-1:#fbeaf4;
+
+    --ink:#1c2a24;
+    --muted:#5f7168;
+    --muted-2:#8a988f;
+    --line:#dcece3;
+    --card:#ffffff;
+    --cta:#3f9e75;
+    --cta-hover:#358a65;
+    --green:#2f9e63;
+    --red:#d0604a;
+    --paper:#fffef9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 500px at 10% -10%, var(--mint-1) 0%, transparent 55%),
+      radial-gradient(900px 500px at 90% 0%, var(--blue-1) 0%, transparent 50%),
+      radial-gradient(900px 600px at 50% 110%, var(--pink-1) 0%, transparent 55%),
+      #fbfffc;
+    color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    padding-bottom:22px;
+    margin-bottom:26px;
+  }
+  .brand{display:flex;flex-direction:column;gap:6px;max-width:560px;}
+  .brand .eyebrow{
+    font-size:11px;letter-spacing:.28em;color:var(--cta);text-transform:uppercase;font-weight:600;
+  }
+  .brand h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,42px);
+    margin:0;
+    letter-spacing:-0.01em;
+    line-height:1.05;
+    color:var(--ink);
+  }
+  .brand p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;}
+
+  .search-block{position:relative;width:360px;max-width:100%;}
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--card);
+    border:1px solid var(--line);
+    padding:8px;
+    border-radius:10px;
+    box-shadow:0 2px 10px -4px rgba(28,42,36,.08);
+  }
+  .controls input{
+    background:transparent;
+    border:none;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    font-weight:500;
+    padding:10px 10px;
+    width:100%;
+    min-width:0;
+  }
+  .controls input:focus{outline:none;}
+  .controls input::placeholder{color:var(--muted-2);}
+  .controls button{
+    background:var(--cta);
+    color:#fff;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.02em;
+    padding:11px 18px;
+    border-radius:7px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s ease, transform .05s ease;
+  }
+  .controls button:hover{background:var(--cta-hover);}
+  .controls button:active{transform:translateY(1px);}
+  .controls button:disabled{opacity:.5;cursor:not-allowed;}
+
+  .suggestions{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;right:0;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:0 10px 28px -8px rgba(28,42,36,.18);
+    overflow:hidden;
+    z-index:20;
+    display:none;
+  }
+  .suggestions.open{display:block;}
+  .sugg-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    cursor:pointer;
+    border-bottom:1px solid var(--line);
+  }
+  .sugg-item:last-child{border-bottom:none;}
+  .sugg-item:hover, .sugg-item.active{background:var(--mint-1);}
+  .sugg-name{font-size:13px;font-weight:600;color:var(--ink);}
+  .sugg-exch{font-size:10px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em;}
+  .sugg-sym{
+    font-size:11px;font-weight:700;color:var(--cta);
+    background:var(--mint-2);padding:3px 8px;border-radius:20px;flex-shrink:0;
+  }
+  .sugg-empty{padding:14px;font-size:12px;color:var(--muted-2);text-align:center;}
+
+  .quick-syms{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .quick-syms button{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:6px 11px;
+    border-radius:20px;
+    cursor:pointer;
+    letter-spacing:.02em;
+  }
+  .quick-syms button:hover{border-color:var(--cta);color:var(--cta);}
+
+  .status-line{
+    font-size:12px;color:var(--muted-2);margin-bottom:22px;min-height:16px;letter-spacing:.02em;
+  }
+  .status-line.err{color:var(--red);}
+  .status-line.ok{color:var(--green);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:22px;
+  }
+  @media(max-width:900px){.grid{grid-template-columns:1fr;} .search-block{width:100%;}}
+
+  .tape-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 4px 18px -10px rgba(28,42,36,.12);
+  }
+  .tape-card[data-tf="5D"] .tape-head{background:var(--mint-2);}
+  .tape-card[data-tf="5W"] .tape-head{background:var(--blue-1);}
+  .tape-card[data-tf="5M"] .tape-head{background:var(--pink-1);}
+
+  .tape-head{
+    padding:14px 18px;
+  }
+  .tape-head .tf{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink);
+  }
+  .tape-head .tf-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  .hl-row{
+    display:flex;
+    justify-content:space-between;
+    padding:12px 18px 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .hl-row .val{color:var(--ink);font-size:15px;font-weight:600;}
+  .hl-row .val.hi{color:var(--green);}
+  .hl-row .val.lo{color:var(--red);}
+
+  .paper{
+    background:var(--paper);
+    color:#2a3a32;
+    margin:14px 14px 16px;
+    border-radius:6px;
+    position:relative;
+    border:1px solid var(--line);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 4px 10px -6px rgba(28,42,36,.15);
+  }
+  .paper::before, .paper::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;height:8px;
+    background:
+      radial-gradient(circle at 8px 4px, var(--card) 3.6px, transparent 4px) repeat-x,
+      radial-gradient(circle at 26px 4px, var(--card) 3.6px, transparent 4px) repeat-x;
+    background-size:34px 8px;
+  }
+  .paper::before{top:-1px;}
+  .paper::after{bottom:-1px;transform:scaleY(-1);}
+  .paper-inner{padding:16px 14px 14px;}
+  .paper-line{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    font-size:12.5px;
+    padding:4px 0;
+    border-bottom:1px dotted var(--line);
+  }
+  .paper-line:last-of-type{border-bottom:none;}
+  .paper-line .op{color:#7c8a80;}
+  .paper-line .num{font-weight:600;}
+  .paper-total{
+    margin-top:10px;
+    padding-top:10px;
+    border-top:2px solid var(--ink);
+    text-align:center;
+  }
+  .paper-total .label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+  .paper-total .value{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:32px;
+    font-weight:700;
+    line-height:1.2;
+    margin-top:2px;
+    color:var(--cta);
+  }
+
+  .placeholder{
+    padding:40px 18px;
+    text-align:center;
+    color:var(--muted-2);
+    font-size:12px;
+    letter-spacing:.03em;
+  }
+  .skeleton{
+    padding:16px 18px 20px;
+  }
+  .skel-bar{
+    height:12px;background:linear-gradient(90deg,var(--line),#eef7f1,var(--line));
+    background-size:200% 100%;
+    animation:shine 1.3s ease-in-out infinite;
+    border-radius:3px;margin-bottom:8px;
+  }
+  @keyframes shine{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  footer{
+    margin-top:34px;
+    font-size:11px;
+    color:var(--muted-2);
+    line-height:1.65;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  footer b{color:var(--muted);}
+  footer code{background:var(--mint-1);padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="eyebrow">Reduction Tape</div>
+      <h1>High/Low Digital Root</h1>
+      <p>Search a company by name — no need to know its ticker. We'll pull real 5-bar highs and lows for daily, weekly, and monthly ranges, then reduce the spread to a single digit and divide the spread by it.</p>
+    </div>
+    <div style="display:flex; flex-direction:column;">
+      <div class="search-block">
+        <div class="controls">
+          <input id="symInput" type="text" placeholder="Search a company, e.g. Apple, Tesla, Reliance…" autocomplete="off" spellcheck="false">
+          <button id="fetchBtn">RUN TAPE</button>
+        </div>
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+      <div class="quick-syms">
+        <button data-sym="AAPL" data-label="Apple">Apple</button>
+        <button data-sym="MSFT" data-label="Microsoft">Microsoft</button>
+        <button data-sym="TSLA" data-label="Tesla">Tesla</button>
+        <button data-sym="NVDA" data-label="Nvidia">Nvidia</button>
+        <button data-sym="RELIANCE.NS" data-label="Reliance">Reliance</button>
+        <button data-sym="TCS.NS" data-label="TCS">TCS</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="status-line" id="statusLine">Type a company name above and pick it from the list, or click one of the quick picks.</div>
+
+  <div class="grid" id="grid">
+    <div class="tape-card" data-tf="5D"><div class="tape-head"><div class="tf">5-Day</div></div><div class="placeholder">Awaiting a symbol</div></div>
+    <div class="tape-card" data-tf="5W"><div class="tape-head"><div class="tf">5-Week</div></div><div class="placeholder">Awaiting a symbol</div></div>
+    <div class="tape-card" data-tf="5M"><div class="tape-head"><div class="tf">5-Month</div></div><div class="placeholder">Awaiting a symbol</div></div>
+  </div>
+
+  <footer>
+    <b>Backend:</b> this page calls a small API (<code id="backendLabel">not set</code>) that fetches Yahoo Finance server-side and computes the digital-root math. <b>Method:</b> for each timeframe, take the last 5 completed bars, find the highest high and lowest low, spread = high − low, digital root = repeatedly sum the spread's digits until one digit remains, result = spread ÷ digital root. If the spread reduces to 0, the root is shown as 9 by convention so the division stays defined. This is a numerological exercise, not financial advice.
+  </footer>
+
+</div>
+
+<script>
+// ====== CONFIGURE THIS AFTER YOU DEPLOY THE BACKEND ======
+// Local testing (running `npm start` in /backend): keep as-is.
+// After deploying to Render, replace with your Render URL, e.g.
+// const BACKEND_URL = 'https://reduction-tape-backend.onrender.com';
+const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000'
+  : 'https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com';
+// ===========================================================
+
+document.getElementById('backendLabel').textContent = BACKEND_URL;
+
+const grid = document.getElementById('grid');
+const statusLine = document.getElementById('statusLine');
+const fetchBtn = document.getElementById('fetchBtn');
+const symInput = document.getElementById('symInput');
+const suggBox = document.getElementById('suggestions');
+
+let selectedSymbol = null;
+let selectedLabel = null;
+let activeIndex = -1;
+let currentSuggestions = [];
+let debounceTimer = null;
+
+document.querySelectorAll('.quick-syms button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    symInput.value = b.dataset.label;
+    selectedSymbol = b.dataset.sym;
+    selectedLabel = b.dataset.label;
+    closeSuggestions();
+    run();
+  });
+});
+fetchBtn.addEventListener('click', ()=>{
+  if(!selectedSymbol){
+    const raw = symInput.value.trim().toUpperCase();
+    if(raw){ selectedSymbol = raw; selectedLabel = raw; }
+  }
+  run();
+});
+
+symInput.addEventListener('input', ()=>{
+  selectedSymbol = null;
+  const q = symInput.value.trim();
+  clearTimeout(debounceTimer);
+  if(q.length < 1){ closeSuggestions(); return; }
+  debounceTimer = setTimeout(()=> searchSymbols(q), 280);
+});
+
+symInput.addEventListener('keydown', (e)=>{
+  if(suggBox.classList.contains('open') && currentSuggestions.length){
+    if(e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = Math.min(activeIndex+1, currentSuggestions.length-1); renderActive(); return; }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = Math.max(activeIndex-1, 0); renderActive(); return; }
+    if(e.key === 'Enter'){ e.preventDefault(); if(activeIndex>=0){ pickSuggestion(currentSuggestions[activeIndex]); } else { fetchBtn.click(); } return; }
+    if(e.key === 'Escape'){ closeSuggestions(); return; }
+  } else if(e.key === 'Enter'){
+    fetchBtn.click();
+  }
+});
+
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.search-block')) closeSuggestions();
+});
+
+function closeSuggestions(){
+  suggBox.classList.remove('open');
+  suggBox.innerHTML = '';
+  currentSuggestions = [];
+  activeIndex = -1;
+}
+
+function renderActive(){
+  [...suggBox.children].forEach((el,i)=> el.classList.toggle('active', i===activeIndex));
+}
+
+async function searchSymbols(query){
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const quotes = await res.json();
+    currentSuggestions = quotes.slice(0,7);
+    if(currentSuggestions.length === 0){
+      suggBox.innerHTML = `<div class="sugg-empty">No matches. You can still type the exact ticker and press Run Tape.</div>`;
+      suggBox.classList.add('open');
+      return;
+    }
+    suggBox.innerHTML = currentSuggestions.map((q,i)=>`
+      <div class="sugg-item" data-i="${i}">
+        <div>
+          <div class="sugg-name">${q.name}</div>
+          <div class="sugg-exch">${q.exchange || ''}</div>
+        </div>
+        <div class="sugg-sym">${q.symbol}</div>
+      </div>`).join('');
+    activeIndex = -1;
+    suggBox.classList.add('open');
+    [...suggBox.querySelectorAll('.sugg-item')].forEach(el=>{
+      el.addEventListener('click', ()=> pickSuggestion(currentSuggestions[Number(el.dataset.i)]));
+    });
+  }catch(err){
+    suggBox.innerHTML = `<div class="sugg-empty">Search unavailable (backend unreachable). You can type the exact ticker and press Run Tape.</div>`;
+    suggBox.classList.add('open');
+  }
+}
+
+function pickSuggestion(q){
+  selectedSymbol = q.symbol;
+  selectedLabel = q.name || q.symbol;
+  symInput.value = `${selectedLabel} (${q.symbol})`;
+  closeSuggestions();
+  run();
+}
+
+const TIMEFRAME_ORDER = ['5D', '5W', '5M'];
+
+function setStatus(msg, cls){
+  statusLine.textContent = msg;
+  statusLine.className = 'status-line' + (cls ? ' '+cls : '');
+}
+
+function skeletonCards(){
+  grid.innerHTML = TIMEFRAME_ORDER.map(key => `
+    <div class="tape-card" data-tf="${key}">
+      <div class="tape-head"><div class="tf">${key === '5D' ? '5-Day' : key === '5W' ? '5-Week' : '5-Month'}</div></div>
+      <div class="skeleton">
+        <div class="skel-bar" style="width:60%"></div>
+        <div class="skel-bar" style="width:80%"></div>
+        <div class="skel-bar" style="width:45%"></div>
+      </div>
+    </div>`).join('');
+}
+
+function fmt(n){
+  return Number(n).toLocaleString(undefined,{ maximumFractionDigits: 2 });
+}
+
+function renderCard(key, data){
+  if(!data || data.error){
+    const label = data && data.label ? data.label : key;
+    return `
+      <div class="tape-card" data-tf="${key}">
+        <div class="tape-head"><div class="tf">${label}</div></div>
+        <div class="placeholder" style="color:var(--red)">Could not load: ${data ? data.error : 'no data'}</div>
+      </div>`;
+  }
+  const { label, sub, high5, low5, barsUsed, spread, steps, root, rootWasZero, result } = data;
+
+  const stepsHtml = steps && steps.length
+    ? steps.map(s=>{
+        const [lhs,rhs] = s.split(' = ');
+        return `<div class="paper-line"><span class="op">${lhs}</span><span class="num">= ${rhs}</span></div>`;
+      }).join('')
+    : `<div class="paper-line"><span class="op">already single digit</span><span class="num">${fmt(spread)}</span></div>`;
+
+  return `
+    <div class="tape-card" data-tf="${key}">
+      <div class="tape-head"><div class="tf">${label}</div><div class="tf-sub">${sub} · ${barsUsed} bars used</div></div>
+      <div class="hl-row">
+        <span>5-bar High</span><span class="val hi">${fmt(high5)}</span>
+      </div>
+      <div class="hl-row" style="padding-bottom:0;">
+        <span>5-bar Low</span><span class="val lo">${fmt(low5)}</span>
+      </div>
+      <div class="paper">
+        <div class="paper-inner">
+          <div class="paper-line"><span class="op">High − Low</span><span class="num">${fmt(high5)} − ${fmt(low5)} = ${fmt(spread)}</span></div>
+          ${stepsHtml}
+          <div class="paper-line"><span class="op">Digital root</span><span class="num">${root}${rootWasZero ? ' (rounded, ties to 9)' : ''}</span></div>
+          <div class="paper-total">
+            <div class="label">Spread ÷ Digital Root</div>
+            <div class="value">${fmt(result)}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function run(){
+  if(!selectedSymbol){
+    setStatus('Pick a company from the search list first.', 'err');
+    return;
+  }
+  const symbol = selectedSymbol;
+  const label = selectedLabel || symbol;
+
+  fetchBtn.disabled = true;
+  setStatus(`Fetching ${label} (${symbol})… (first request after idle may take up to ~50s while the free backend wakes up)`);
+  skeletonCards();
+
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/tape?symbol=${encodeURIComponent(symbol)}`);
+    if(!res.ok){
+      const errBody = await res.json().catch(()=>({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    grid.innerHTML = TIMEFRAME_ORDER.map(key => renderCard(key, data.timeframes[key])).join('');
+
+    const anyOk = TIMEFRAME_ORDER.some(k => data.timeframes[k] && !data.timeframes[k].error);
+    const anyFail = TIMEFRAME_ORDER.some(k => !data.timeframes[k] || data.timeframes[k].error);
+    if(anyOk && !anyFail) setStatus(`Loaded ${label} (${symbol}) — all three timeframes.`, 'ok');
+    else if(anyOk && anyFail) setStatus(`Loaded ${label} (${symbol}) — some timeframes failed. Try again.`, 'err');
+    else setStatus(`Could not load ${label} (${symbol}). Try a different company.`, 'err');
+  }catch(err){
+    setStatus(`Backend unreachable: ${err.message}. Check BACKEND_URL in the page's script and that the server is running.`, 'err');
+    grid.innerHTML = TIMEFRAME_ORDER.map(key => renderCard(key, null)).join('');
+  }
+
+  fetchBtn.disabled = false;
+}
+
+selectedSymbol = 'AAPL';
+selectedLabel = 'Apple';
+symInput.value = 'Apple (AAPL)';
+run();
+</script>
+</body>
+</html>
