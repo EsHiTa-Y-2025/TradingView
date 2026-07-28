@@ -164,7 +164,7 @@
     grid-template-columns:repeat(3,1fr);
     gap:22px;
   }
-  @media(max-width:900px){.grid{grid-template-columns:1fr;} .search-block{width:100%;}}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;} .-block{width:100%;}}
 
   .tape-card{
     background:var(--card);
@@ -288,7 +288,7 @@
     <div class="brand">
       <div class="eyebrow">Reduction Tape</div>
       <h1>High/Low Digital Root</h1>
-      <p>Search a company by name — no need to know its ticker. We'll pull real 5-bar highs and lows for daily, weekly, and monthly ranges, then reduce the spread to a single digit and divide the spread by it.</p>
+      <!-- <p> a company by name — no need to know its ticker. We'll pull real 5-bar highs and lows for daily, weekly, and monthly ranges, then reduce the spread to a single digit and divide the spread by it.</p> -->
     </div>
     <div style="display:flex; flex-direction:column;">
       <div class="search-block">
@@ -320,7 +320,7 @@
   </div>
 
   <footer>
-    <b>Backend:</b> this page calls a small API (<code id="backendLabel">not set</code>) that fetches Yahoo Finance server-side and computes the digital-root math. <b>Method:</b> for each timeframe, take the last 5 completed bars, find the highest high and lowest low, spread = high − low, digital root = repeatedly sum the spread's digits until one digit remains, result = spread ÷ digital root. If the spread reduces to 0, the root is shown as 9 by convention so the division stays defined. This is a numerological exercise, not financial advice.
+    <!-- <b>Backend:</b> this page calls a small API (<code id="backendLabel">not set</code>) that fetches Yahoo Finance server-side and computes the digital-root math. <b>Method:</b> for each timeframe, take the last 5 completed bars, find the highest high and lowest low, spread = high − low, digital root = repeatedly sum the spread's digits until one digit remains, result = spread ÷ digital root. If the spread reduces to 0, the root is shown as 9 by convention so the division stays defined. This is a numerological exercise, not financial advice. -->
   </footer>
 
 </div>
