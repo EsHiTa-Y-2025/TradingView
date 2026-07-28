@@ -164,7 +164,26 @@
     grid-template-columns:repeat(3,1fr);
     gap:22px;
   }
-  @media(max-width:900px){.grid{grid-template-columns:1fr;} .-block{width:100%;}}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;} .search-block{width:100%;}}
+
+  @media(max-width:480px){
+    body{padding:20px 14px 60px;}
+    header{padding-bottom:16px;margin-bottom:18px;}
+    .controls{flex-wrap:wrap;}
+    .controls input{
+      width:100%;
+      font-size:16px; /* prevents iOS Safari auto-zoom on focus */
+      padding:12px 10px;
+    }
+    .controls button{
+      width:100%;
+      padding:13px 18px;
+      min-height:46px;
+    }
+    .quick-syms button{padding:9px 13px;min-height:36px;}
+    .grid{gap:16px;}
+    .paper-total .value{font-size:28px;}
+  }
 
   .tape-card{
     background:var(--card);
@@ -251,6 +270,88 @@
     color:var(--cta);
   }
 
+  /* ---- derived metrics (uptdpt, lptdpt, SP, BP) ---- */
+  .last-day-note{
+    padding:0 18px 10px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .metrics-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:0 14px 16px;
+  }
+  .metric-box{
+    background:var(--mint-1);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 11px;
+  }
+  .metric-box .m-label{
+    font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  }
+  .metric-box .m-value{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    color:var(--ink);
+    margin-top:2px;
+  }
+  .metric-box.neg .m-value{color:var(--red);}
+  .metric-box.pos .m-value{color:var(--green);}
+
+  /* ---- custom date range section ---- */
+  .range-section{
+    margin-top:34px;
+    padding-top:28px;
+    border-top:1px solid var(--line);
+  }
+  .range-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    margin:0 0 4px;
+  }
+  .range-desc{color:var(--muted);font-size:12.5px;margin:0 0 16px;max-width:600px;line-height:1.5;}
+  .range-form{
+    display:flex;
+    align-items:flex-end;
+    gap:12px;
+    flex-wrap:wrap;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    box-shadow:0 2px 10px -4px rgba(28,42,36,.08);
+  }
+  .range-field{display:flex;flex-direction:column;gap:5px;}
+  .range-field label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .range-field input[type="date"]{
+    background:var(--mint-1);
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:9px 10px;
+    border-radius:6px;
+  }
+  .range-form button{
+    background:var(--cta);
+    color:#fff;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    padding:11px 20px;
+    border-radius:7px;
+    cursor:pointer;
+    height:38px;
+  }
+  .range-form button:hover{background:var(--cta-hover);}
+  .range-form button:disabled{opacity:.5;cursor:not-allowed;}
+  .range-result{margin-top:18px;max-width:420px;}
+
   .placeholder{
     padding:40px 18px;
     text-align:center;
@@ -288,7 +389,6 @@
     <div class="brand">
       <div class="eyebrow">Reduction Tape</div>
       <h1>High/Low Digital Root</h1>
-      <!-- <p> a company by name — no need to know its ticker. We'll pull real 5-bar highs and lows for daily, weekly, and monthly ranges, then reduce the spread to a single digit and divide the spread by it.</p> -->
     </div>
     <div style="display:flex; flex-direction:column;">
       <div class="search-block">
@@ -319,9 +419,24 @@
     <div class="tape-card" data-tf="5M"><div class="tape-head"><div class="tf">5-Month</div></div><div class="placeholder">Awaiting a symbol</div></div>
   </div>
 
-  <footer>
-    <!-- <b>Backend:</b> this page calls a small API (<code id="backendLabel">not set</code>) that fetches Yahoo Finance server-side and computes the digital-root math. <b>Method:</b> for each timeframe, take the last 5 completed bars, find the highest high and lowest low, spread = high − low, digital root = repeatedly sum the spread's digits until one digit remains, result = spread ÷ digital root. If the spread reduces to 0, the root is shown as 9 by convention so the division stays defined. This is a numerological exercise, not financial advice. -->
-  </footer>
+  <div class="range-section">
+    <div class="range-title">Custom Date Range</div>
+    <p class="range-desc">Pick any start and end date. We'll take the highest high and lowest low across every bar in that window, run the same trade-point reduction, and derive the same four metrics from the last trading day inside the range.</p>
+    <div class="range-form">
+      <div class="range-field">
+        <label for="rangeStart">Start date</label>
+        <input type="date" id="rangeStart">
+      </div>
+      <div class="range-field">
+        <label for="rangeEnd">End date</label>
+        <input type="date" id="rangeEnd">
+      </div>
+      <button id="rangeBtn">CALCULATE RANGE</button>
+    </div>
+    <div class="range-result" id="rangeResult"></div>
+  </div>
+
+  <footer></footer>
 
 </div>
 
@@ -334,8 +449,6 @@ const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === 
   ? 'http://localhost:3000'
   : 'https://tradingview-backend-kwrp.onrender.com';
 // ===========================================================
-
-document.getElementById('backendLabel').textContent = BACKEND_URL;
 
 const grid = document.getElementById('grid');
 const statusLine = document.getElementById('statusLine');
@@ -470,7 +583,7 @@ function renderCard(key, data){
         <div class="placeholder" style="color:var(--red)">Could not load: ${data ? data.error : 'no data'}</div>
       </div>`;
   }
-  const { label, sub, high5, low5, barsUsed, spread, steps, root, rootWasZero, result } = data;
+  const { label, sub, high5, low5, barsUsed, spread, steps, root, rootWasZero, tradePoint, lastDay, uptdpt, lptdpt, SP, BP, metricsError } = data;
 
   const stepsHtml = steps && steps.length
     ? steps.map(s=>{
@@ -478,6 +591,15 @@ function renderCard(key, data){
         return `<div class="paper-line"><span class="op">${lhs}</span><span class="num">= ${rhs}</span></div>`;
       }).join('')
     : `<div class="paper-line"><span class="op">already single digit</span><span class="num">${fmt(spread)}</span></div>`;
+
+  const metricsHtml = lastDay ? `
+    <div class="last-day-note">Last trading day (${lastDay.date}): close ${fmt(lastDay.close)} · high ${fmt(lastDay.high)} · low ${fmt(lastDay.low)}</div>
+    <div class="metrics-grid">
+      <div class="metric-box pos"><div class="m-label">UPTDPT (TP + close)</div><div class="m-value">${fmt(uptdpt)}</div></div>
+      <div class="metric-box neg"><div class="m-label">LPTDPT (TP − close)</div><div class="m-value">${fmt(lptdpt)}</div></div>
+      <div class="metric-box"><div class="m-label">SP (low + TP)</div><div class="m-value">${fmt(SP)}</div></div>
+      <div class="metric-box"><div class="m-label">BP (high − TP)</div><div class="m-value">${fmt(BP)}</div></div>
+    </div>` : `<div class="last-day-note" style="color:var(--red)">Extra metrics unavailable: ${metricsError || 'no last-day data'}</div>`;
 
   return `
     <div class="tape-card" data-tf="${key}">
@@ -494,11 +616,12 @@ function renderCard(key, data){
           ${stepsHtml}
           <div class="paper-line"><span class="op">Digital root</span><span class="num">${root}${rootWasZero ? ' (rounded, ties to 9)' : ''}</span></div>
           <div class="paper-total">
-            <div class="label">Spread ÷ Digital Root</div>
-            <div class="value">${fmt(result)}</div>
+            <div class="label">Trade Point (Spread ÷ Digital Root)</div>
+            <div class="value">${fmt(tradePoint)}</div>
           </div>
         </div>
       </div>
+      ${metricsHtml}
     </div>`;
 }
 
@@ -540,6 +663,98 @@ selectedSymbol = 'AAPL';
 selectedLabel = 'Apple';
 symInput.value = 'Apple (AAPL)';
 run();
+
+// ====== Custom date-range picker ======
+const rangeStart = document.getElementById('rangeStart');
+const rangeEnd = document.getElementById('rangeEnd');
+const rangeBtn = document.getElementById('rangeBtn');
+const rangeResult = document.getElementById('rangeResult');
+
+function toISODate(d){ return d.toISOString().slice(0,10); }
+
+// sensible defaults: last 30 days
+(function initRangeDefaults(){
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  rangeEnd.value = toISODate(end);
+  rangeStart.value = toISODate(start);
+})();
+
+function renderRangeResult(data, error){
+  if(error){
+    rangeResult.innerHTML = `<div class="placeholder" style="color:var(--red); text-align:left; padding:14px 0;">Could not load: ${error}</div>`;
+    return;
+  }
+  const { symbol, start, end, high, low, barsUsed, spread, steps, root, rootWasZero, tradePoint, lastDay, uptdpt, lptdpt, SP, BP } = data;
+
+  const stepsHtml = steps && steps.length
+    ? steps.map(s=>{
+        const [lhs,rhs] = s.split(' = ');
+        return `<div class="paper-line"><span class="op">${lhs}</span><span class="num">= ${rhs}</span></div>`;
+      }).join('')
+    : `<div class="paper-line"><span class="op">already single digit</span><span class="num">${fmt(spread)}</span></div>`;
+
+  rangeResult.innerHTML = `
+    <div class="tape-card" data-tf="RANGE" style="max-width:420px;">
+      <div class="tape-head" style="background:var(--mint-3);">
+        <div class="tf">${symbol}</div>
+        <div class="tf-sub">${start} → ${end} · ${barsUsed} bars used</div>
+      </div>
+      <div class="hl-row"><span>Range High</span><span class="val hi">${fmt(high)}</span></div>
+      <div class="hl-row" style="padding-bottom:0;"><span>Range Low</span><span class="val lo">${fmt(low)}</span></div>
+      <div class="paper">
+        <div class="paper-inner">
+          <div class="paper-line"><span class="op">High − Low</span><span class="num">${fmt(high)} − ${fmt(low)} = ${fmt(spread)}</span></div>
+          ${stepsHtml}
+          <div class="paper-line"><span class="op">Digital root</span><span class="num">${root}${rootWasZero ? ' (rounded, ties to 9)' : ''}</span></div>
+          <div class="paper-total">
+            <div class="label">Trade Point (Spread ÷ Digital Root)</div>
+            <div class="value">${fmt(tradePoint)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="last-day-note">Last day in range (${lastDay.date}): close ${fmt(lastDay.close)} · high ${fmt(lastDay.high)} · low ${fmt(lastDay.low)}</div>
+      <div class="metrics-grid">
+        <div class="metric-box pos"><div class="m-label">UPTDPT (TP + close)</div><div class="m-value">${fmt(uptdpt)}</div></div>
+        <div class="metric-box neg"><div class="m-label">LPTDPT (TP − close)</div><div class="m-value">${fmt(lptdpt)}</div></div>
+        <div class="metric-box"><div class="m-label">SP (low + TP)</div><div class="m-value">${fmt(SP)}</div></div>
+        <div class="metric-box"><div class="m-label">BP (high − TP)</div><div class="m-value">${fmt(BP)}</div></div>
+      </div>
+    </div>`;
+}
+
+rangeBtn.addEventListener('click', async ()=>{
+  const symbol = selectedSymbol || symInput.value.trim().toUpperCase();
+  if(!symbol){
+    renderRangeResult(null, 'Pick a company/symbol above first.');
+    return;
+  }
+  const start = rangeStart.value;
+  const end = rangeEnd.value;
+  if(!start || !end){
+    renderRangeResult(null, 'Choose both a start and end date.');
+    return;
+  }
+  if(start >= end){
+    renderRangeResult(null, 'Start date must be before end date.');
+    return;
+  }
+
+  rangeBtn.disabled = true;
+  rangeResult.innerHTML = `<div class="skeleton" style="max-width:420px;"><div class="skel-bar" style="width:60%"></div><div class="skel-bar" style="width:80%"></div><div class="skel-bar" style="width:45%"></div></div>`;
+
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/range?symbol=${encodeURIComponent(symbol)}&start=${start}&end=${end}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    renderRangeResult(data, null);
+  }catch(err){
+    renderRangeResult(null, err.message);
+  }
+
+  rangeBtn.disabled = false;
+});
 </script>
 </body>
 </html>
